@@ -29,8 +29,8 @@ func TestSessionRedis(t *testing.T) {
 		IdleCheckFrequency: 0,
 		TLSConfig:          nil,
 	})
-	save := session.GetNewRedisSession(c, 3600)
-	us := &session.UserSession{
+	save := GetNewRedisSession(c, 3600)
+	us := &UserSession{
 	}
 	us.SetData(map[string]string{
 		"ss":"111",
