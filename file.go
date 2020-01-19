@@ -17,7 +17,7 @@ type FileSession struct {
 	suffix      string
 	maxLeftTime int64
 
-	files       *sync.Map
+	files *sync.Map
 }
 
 /**
@@ -39,7 +39,7 @@ func GetNewFileSession(path string, maxLeftTime int64) *FileSession {
 		path:        path,
 		maxLeftTime: maxLeftTime,
 		SError:      make(SError),
-		files:		 new(sync.Map),
+		files:       new(sync.Map),
 	}
 	go fs.AutoDestroy()
 
@@ -52,9 +52,9 @@ func (fse *FileSession) AutoDestroy() {
 
 	for {
 		select {
-		case <- tick:
+		case <-tick:
 			fse.files.Range(func(key, value interface{}) bool {
-				sid,ok := key.(string)
+				sid, ok := key.(string)
 				if !ok {
 					return false
 				}
@@ -68,20 +68,20 @@ func (fse *FileSession) AutoDestroy() {
 				}
 				return true
 			})
-		//case sid := <-fse.expire:
-		//	name := fse.getFileName(sid)
-		//	fs, err := os.Stat(name)
-		//	if err != nil {
-		//		continue
-		//	}
-		//
-		//	lost := fse.lost(fs)
-		//	if lost <= 0 {
-		//		fse.Destroy(sid)
-		//		continue
-		//	}
-		//
-		//	go fse.expired(sid, lost)
+			//case sid := <-fse.expire:
+			//	name := fse.getFileName(sid)
+			//	fs, err := os.Stat(name)
+			//	if err != nil {
+			//		continue
+			//	}
+			//
+			//	lost := fse.lost(fs)
+			//	if lost <= 0 {
+			//		fse.Destroy(sid)
+			//		continue
+			//	}
+			//
+			//	go fse.expired(sid, lost)
 		}
 	}
 }
@@ -133,7 +133,6 @@ func (fse *FileSession) Open(savePath string) bool {
 
 	return true
 }
-
 
 func (fse *FileSession) Read(sid string) map[string]string {
 
