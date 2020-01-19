@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -14,10 +15,9 @@ type FileSession struct {
 	path        string
 	prefix      string
 	suffix      string
-	timer       map[string]time.Timer
 	maxLeftTime int64
 
-	expire chan string
+	files       *sync.Map
 }
 
 /**
@@ -39,7 +39,7 @@ func GetNewFileSession(path string, maxLeftTime int64) *FileSession {
 		path:        path,
 		maxLeftTime: maxLeftTime,
 		SError:      make(SError),
-		expire:      make(chan string),
+		files:		 new(sync.Map),
 	}
 	go fs.AutoDestroy()
 
@@ -47,22 +47,42 @@ func GetNewFileSession(path string, maxLeftTime int64) *FileSession {
 }
 
 func (fse *FileSession) AutoDestroy() {
+
+	tick := time.Tick(time.Second)
+
 	for {
 		select {
-		case sid := <-fse.expire:
-			name := fse.getFileName(sid)
-			fs, err := os.Stat(name)
-			if err != nil {
-				continue
-			}
-
-			lost := fse.lost(fs)
-			if lost <= 0 {
-				fse.Destroy(sid)
-				continue
-			}
-
-			go fse.expired(sid, lost)
+		case <- tick:
+			fse.files.Range(func(key, value interface{}) bool {
+				sid,ok := key.(string)
+				if !ok {
+					return false
+				}
+				t, ok := value.(time.Time)
+				if !ok {
+					return false
+				}
+				fmt.Println(sid,t)
+				if t.Sub(time.Now()) <= time.Duration(fse.maxLeftTime*int64(time.Second)) {
+					fse.Destroy(sid)
+					fse.files.Delete(sid)
+				}
+				return true
+			})
+		//case sid := <-fse.expire:
+		//	name := fse.getFileName(sid)
+		//	fs, err := os.Stat(name)
+		//	if err != nil {
+		//		continue
+		//	}
+		//
+		//	lost := fse.lost(fs)
+		//	if lost <= 0 {
+		//		fse.Destroy(sid)
+		//		continue
+		//	}
+		//
+		//	go fse.expired(sid, lost)
 		}
 	}
 }
@@ -71,11 +91,11 @@ func (fse *FileSession) lost(fs os.FileInfo) int64 {
 	return time.Now().Unix() - fs.ModTime().Unix() - fse.maxLeftTime
 }
 
-func (fse *FileSession) expired(sid string, timeSecond int64) {
-	timer := time.NewTimer(time.Duration(timeSecond * int64(time.Second)))
-	<-timer.C
-	fse.expire <- sid
-}
+//func (fse *FileSession) expired(sid string, timeSecond int64) {
+//	timer := time.NewTimer(time.Duration(timeSecond * int64(time.Second)))
+//	<-timer.C
+//	fse.expire <- sid
+//}
 
 func (fse *FileSession) getFileName(sid string) string {
 	return fmt.Sprintf("%s/%s_%s.%s", fse.path, fse.prefix, sid, fse.suffix)
@@ -115,7 +135,9 @@ func (fse *FileSession) Open(savePath string) bool {
 	return true
 }
 
+
 func (fse *FileSession) Read(sid string) map[string]string {
+
 	fn := fse.getFileName(sid)
 	fs, err := os.Stat(fn)
 	if err != nil {
@@ -134,6 +156,9 @@ func (fse *FileSession) Read(sid string) map[string]string {
 		fse.SetErr(sid, err)
 		return nil
 	}
+
+	//刷新文件时间
+	fse.files.Store(sid, time.Now())
 
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -166,11 +191,13 @@ func (fse *FileSession) Write(sid string, data map[string]string) bool {
 
 	b, _ := json.Marshal(data)
 	_, err = file.Write(b)
-	go fse.expired(sid, fse.maxLeftTime)
+	//go fse.expired(sid, fse.maxLeftTime)
 	if err != nil {
 		fse.SetErr(sid, err)
 		return false
 	}
+	//刷新文件时间
+	fse.files.Store(sid, time.Now())
 
 	return true
 }

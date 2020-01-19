@@ -22,7 +22,6 @@ func TestFileSession_Open(t *testing.T) {
 func TestFileSession_Expire(t *testing.T) {
 	fs := GetNewFileSession("D:\\work", 10)
 	fmt.Println(fs.Write("xxx", map[string]string{"user_id":"333"}))
-	fmt.Println(fs.Error("xxx"))
 
 	timer := time.NewTimer(11*time.Second)
 	<-timer.C
@@ -34,4 +33,6 @@ func TestFileSession_Expire(t *testing.T) {
 	if fi != nil || err == nil {
 		t.Errorf("file not expired, err: %v", err)
 	}
+
+	fmt.Println("success expired and deleted")
 }
