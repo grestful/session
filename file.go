@@ -62,7 +62,6 @@ func (fse *FileSession) AutoDestroy() {
 				if !ok {
 					return false
 				}
-				fmt.Println(sid,t)
 				if t.Sub(time.Now()) <= time.Duration(fse.maxLeftTime*int64(time.Second)) {
 					fse.Destroy(sid)
 					fse.files.Delete(sid)
