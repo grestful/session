@@ -10,6 +10,7 @@ type RedisSession struct {
 	rw			*sync.Mutex
 	client      *redis.Client
 	maxLeftTime int64
+	prefix 		string
 	SError
 }
 
@@ -48,11 +49,13 @@ func (rs *RedisSession) Gc(maxLeftTime int64) bool {
 }
 
 func (rs *RedisSession) Open(savePath string) bool {
-
+	if rs.prefix == "" {
+		rs.prefix = "grest:session:"
+	}
 	return true
 }
 
-func (rs *RedisSession) Read(sid string) map[string]string {
+func (rs *RedisSession) Read(sid string) map[string]interface{} {
 	rs.rw.Lock()
 	defer rs.rw.Unlock()
 	mp, err := rs.client.HGetAll(rs.getKey(sid)).Result()
@@ -61,15 +64,18 @@ func (rs *RedisSession) Read(sid string) map[string]string {
 		return nil
 	}
 
-	return mp
+	mpr := make(map[string]interface{}, len(mp))
+	for key,value := range mp {
+		mpr[key] = value
+	}
+	return mpr
 }
 
-func (rs *RedisSession) Write(sid string, mp map[string]string) bool {
+func (rs *RedisSession) Write(sid string, mp map[string]interface{}) bool {
 	rs.rw.Lock()
 	defer rs.rw.Unlock()
 	name := rs.getKey(sid)
 	for key, value := range mp {
-
 		err := rs.client.HSet(name, key, value).Err()
 		if err != nil {
 			rs.SetErr(sid, err)
@@ -84,5 +90,10 @@ func (rs *RedisSession) Write(sid string, mp map[string]string) bool {
 }
 
 func (rs *RedisSession) getKey(sid string) string {
-	return "grest:session:" + sid
+	return rs.prefix + sid
+}
+
+
+func (rs *RedisSession) SetPrefix(keyPrefix string) {
+	rs.prefix = keyPrefix
 }

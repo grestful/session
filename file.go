@@ -174,6 +174,10 @@ func (fse *FileSession) Read(sid string) map[string]interface{} {
 	return data
 }
 
+func (fse *FileSession) SetPrefix(keyPrefix string) {
+	fse.prefix = keyPrefix
+}
+
 func (fse *FileSession) Write(sid string, data map[string]interface{}) bool {
 	filename := fse.getFileName(sid)
 

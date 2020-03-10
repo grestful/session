@@ -14,6 +14,7 @@ type ISession interface {
 	Read(sid string) map[string]interface{}
 	Write(sid string, data map[string]interface{}) bool
 	Error(sid string) error
+	SetPrefix(keyPrefix string)
 }
 
 type IUserSession interface {
