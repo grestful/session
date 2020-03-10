@@ -2,10 +2,12 @@ package session
 
 import (
 	"github.com/go-redis/redis/v7"
+	"sync"
 	"time"
 )
 
 type RedisSession struct {
+	rw			*sync.Mutex
 	client      *redis.Client
 	maxLeftTime int64
 	SError
@@ -16,6 +18,7 @@ func GetNewRedisSession(client *redis.Client, maxLeftTime int64) *RedisSession {
 		maxLeftTime = 3600
 	}
 	return &RedisSession{
+		rw:			new(sync.Mutex),
 		client:      client,
 		maxLeftTime: maxLeftTime,
 		SError:      make(SError),
@@ -50,6 +53,8 @@ func (rs *RedisSession) Open(savePath string) bool {
 }
 
 func (rs *RedisSession) Read(sid string) map[string]string {
+	rs.rw.Lock()
+	defer rs.rw.Unlock()
 	mp, err := rs.client.HGetAll(rs.getKey(sid)).Result()
 	if err != nil {
 		rs.SetErr(sid, err)
@@ -60,6 +65,8 @@ func (rs *RedisSession) Read(sid string) map[string]string {
 }
 
 func (rs *RedisSession) Write(sid string, mp map[string]string) bool {
+	rs.rw.Lock()
+	defer rs.rw.Unlock()
 	name := rs.getKey(sid)
 	for key, value := range mp {
 

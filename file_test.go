@@ -9,11 +9,11 @@ import (
 
 func TestFileSession_Open(t *testing.T) {
 	fs := GetNewFileSession("C:\\work", 3600)
-	fmt.Println(fs.Write("xxx", map[string]string{"user_id":"333"}))
+	fmt.Println(fs.Write("xxx",map[string]interface{}{"user_id":"333"}))
 	fmt.Println(fs.Error("xxx"))
 
 	fs = GetNewFileSession("D:\\work", 3600)
-	fmt.Println(fs.Write("xxx", map[string]string{"user_id":"333"}))
+	fmt.Println(fs.Write("xxx", map[string]interface{}{"user_id":"333"}))
 	fmt.Println(fs.Error("xxx"))
 	//fs,err := os.Stat("D:\\work\\not_exists")
 	//fmt.Println(fs, err)
@@ -21,7 +21,7 @@ func TestFileSession_Open(t *testing.T) {
 
 func TestFileSession_Expire(t *testing.T) {
 	fs := GetNewFileSession("D:\\work", 10)
-	fmt.Println(fs.Write("xxx", map[string]string{"user_id":"333"}))
+	fmt.Println(fs.Write("xxx", map[string]interface{}{"user_id":"333"}))
 
 	timer := time.NewTimer(11*time.Second)
 	<-timer.C

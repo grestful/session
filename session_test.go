@@ -3,6 +3,7 @@ package session
 import (
 	"fmt"
 	"github.com/go-redis/redis/v7"
+	"github.com/grestful/utils"
 	"testing"
 )
 
@@ -32,10 +33,10 @@ func TestSessionRedis(t *testing.T) {
 	save := GetNewRedisSession(c, 3600)
 	us := &UserSession{
 	}
-	us.SetData(map[string]string{
+	us.SetData(utils.NewMapperReader(map[string]interface{}{
 		"ss":"111",
 		"user_id":"123",
-	})
+	}))
 
 	d,_ := us.GetData()
 	save.Write(sid, d)

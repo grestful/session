@@ -134,7 +134,7 @@ func (fse *FileSession) Open(savePath string) bool {
 	return true
 }
 
-func (fse *FileSession) Read(sid string) map[string]string {
+func (fse *FileSession) Read(sid string) map[string]interface{} {
 
 	fn := fse.getFileName(sid)
 	fs, err := os.Stat(fn)
@@ -164,7 +164,7 @@ func (fse *FileSession) Read(sid string) map[string]string {
 		return nil
 	}
 
-	var data map[string]string
+	var data map[string]interface{}
 	err = json.Unmarshal(b, data)
 	if err != nil {
 		fse.SetErr(sid, err)
@@ -174,7 +174,7 @@ func (fse *FileSession) Read(sid string) map[string]string {
 	return data
 }
 
-func (fse *FileSession) Write(sid string, data map[string]string) bool {
+func (fse *FileSession) Write(sid string, data map[string]interface{}) bool {
 	filename := fse.getFileName(sid)
 
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)

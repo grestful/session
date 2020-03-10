@@ -1,22 +1,24 @@
 package session
 
 import (
-	"strconv"
+	"errors"
+	"fmt"
+	"github.com/grestful/utils"
 )
 
 type ISession interface {
-	Close () bool
-	Destroy(sid string)  bool
-	Gc(maxLeftTime int64)  bool
-	Open(savePath string)  bool
-	Read(sid string) map[string]string
-	Write(sid string, data map[string]string)  bool
+	Close() bool
+	Destroy(sid string) bool
+	Gc(maxLeftTime int64) bool
+	Open(savePath string) bool
+	Read(sid string) map[string]interface{}
+	Write(sid string, data map[string]interface{}) bool
 	Error(sid string) error
 }
 
 type IUserSession interface {
-	SetData(data map[string]string) error
-	GetData() (data map[string]string, err error)
+	SetData(data *utils.MapReader) error
+	GetData() (data *utils.MapReader, err error)
 	GetUserId() int64
 	GetProperty(name string) interface{}
 	GetAuthName() string
@@ -24,36 +26,35 @@ type IUserSession interface {
 }
 
 type UserSession struct {
-	UserId		int64	`json:"user_id"`
-	Property    map[string]string `json:"property"`
-	Sid         string  `json:"sid"`
-	flag        uint8   //0 未读 1 已读 2 已写
-	handler     ISession
+	UserId   int64            `json:"user_id"`
+	Property *utils.MapReader `json:"property"`
+	Sid      string           `json:"sid"`
+	flag     uint8            //0 未读 1 已读 2 已写
+	handler  ISession
 }
 
 func GetNewUserSession(sid string, session ISession) IUserSession {
 	return &UserSession{
 		UserId:   0,
-		Property: make(map[string]string),
+		Property: utils.NewMapperReader(make(map[string]interface{})),
 		Sid:      sid,
 		handler:  session,
 	}
 }
 
-func (s *UserSession) SetData(data map[string]string) error {
-	if id,ok := data["user_id"]; ok {
-		//s.UserId = base.String2Int64(id, 0)
-		s.UserId,_ = strconv.ParseInt(id, 10, 64)
+func (s *UserSession) SetData(data *utils.MapReader) error {
+	s.UserId = data.ReadWithInt64("user_id", 0)
+	if s.UserId > 0 {
+		s.Property = data
+		s.flag = 2
+		s.handler.Write(s.Sid, s.Property.GetValue())
 	}
-	s.Property = data
-	s.flag = 2
-	s.handler.Write(s.Sid, s.Property)
-	return nil
+	return errors.New(fmt.Sprintf("no found id in data %v", data.GetValue()))
 }
 
-func (s *UserSession) GetData() (data map[string]string, err error) {
+func (s *UserSession) GetData() (data *utils.MapReader, err error) {
 	s.checkRead()
-	return s.Property,nil
+	return s.Property, nil
 }
 
 func (s *UserSession) GetUserId() int64 {
@@ -63,17 +64,15 @@ func (s *UserSession) GetUserId() int64 {
 
 func (s *UserSession) GetProperty(name string) interface{} {
 	s.checkRead()
-	if v,ok := s.Property[name]; ok {
-		return v
-	}
-	return nil
+	return s.Property.ReadWithInterface(name, nil)
 }
 
 func (s *UserSession) GetAuthName() string {
 	return "cookie"
 }
 
-func (s *UserSession)  SetSessionHandler(session ISession) error {
+func (s *UserSession) SetSessionHandler(session ISession) error {
+	s.handler = session
 	return nil
 }
 
@@ -83,7 +82,7 @@ func (s *UserSession) checkRead() bool {
 			return false
 		}
 		s.flag = 1
-		s.Property = s.handler.Read(s.Sid)
+		s.Property = utils.NewMapperReader(s.handler.Read(s.Sid))
 	}
 	return true
 }
