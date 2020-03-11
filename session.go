@@ -24,13 +24,15 @@ type IUserSession interface {
 	GetProperty(name string) interface{}
 	GetAuthName() string
 	SetSessionHandler(session ISession) error
+	SetUserIdKey(idName string)
 }
 
 type UserSession struct {
-	UserId   int64            `json:"user_id"`
+	UserId   int64            `json:"userId"`
 	Property *utils.MapReader `json:"property"`
 	Sid      string           `json:"sid"`
 	flag     uint8            //0 未读 1 已读 2 已写
+	idName   string
 	handler  ISession
 }
 
@@ -43,8 +45,20 @@ func GetNewUserSession(sid string, session ISession) IUserSession {
 	}
 }
 
+func (s *UserSession) SetUserIdKey(idName string) {
+	s.idName = idName
+}
+
+func (s *UserSession) getUserIdKey() string {
+	if s.idName == "" {
+		return "userId"
+	}
+
+	return s.idName
+}
+
 func (s *UserSession) SetData(data *utils.MapReader) error {
-	s.UserId = data.ReadWithInt64("user_id", 0)
+	s.UserId = data.ReadWithInt64(s.getUserIdKey(), 0)
 	if s.UserId > 0 {
 		s.Property = data
 		s.flag = 2
