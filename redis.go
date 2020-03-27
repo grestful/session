@@ -8,10 +8,10 @@ import (
 )
 
 type RedisSession struct {
-	rw			*sync.Mutex
+	rw          *sync.Mutex
 	client      *redis.Client
 	maxLeftTime int64
-	prefix 		string
+	prefix      string
 	SError
 }
 
@@ -20,7 +20,7 @@ func GetNewRedisSession(client *redis.Client, maxLeftTime int64) *RedisSession {
 		maxLeftTime = 3600
 	}
 	return &RedisSession{
-		rw:			new(sync.Mutex),
+		rw:          new(sync.Mutex),
 		client:      client,
 		maxLeftTime: maxLeftTime,
 		SError:      make(SError),
@@ -86,7 +86,7 @@ func (rs *RedisSession) Write(sid string, mp map[string]interface{}) bool {
 	rs.rw.Lock()
 	defer rs.rw.Unlock()
 	name := rs.getKey(sid)
-	value,_ := json.Marshal(mp)
+	value, _ := json.Marshal(mp)
 	err := rs.client.Set(name, string(value[:]), time.Duration(rs.maxLeftTime*int64(time.Second))).Err()
 	if err != nil {
 		rs.SetErr(sid, err)
@@ -99,7 +99,6 @@ func (rs *RedisSession) Write(sid string, mp map[string]interface{}) bool {
 func (rs *RedisSession) getKey(sid string) string {
 	return rs.prefix + sid
 }
-
 
 func (rs *RedisSession) SetPrefix(keyPrefix string) {
 	rs.prefix = keyPrefix

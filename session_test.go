@@ -31,14 +31,13 @@ func TestSessionRedis(t *testing.T) {
 		TLSConfig:          nil,
 	})
 	save := GetNewRedisSession(c, 3600)
-	us := &UserSession{
-	}
+	us := &UserSession{}
 	us.SetData(utils.NewMapperReader(map[string]interface{}{
-		"ss":"111",
-		"user_id":"123",
+		"ss":      "111",
+		"user_id": "123",
 	}))
 
-	d,_ := us.GetData()
+	d, _ := us.GetData()
 	save.Write(sid, d)
 
 	fmt.Println(save.Read(sid))
